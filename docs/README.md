@@ -72,7 +72,7 @@ When a new record is inserted, that record starts from the next cycle.
 
 ##### ER Diagram
 
-![ER_WEBSTATUS](D:\Code\Go\src\github.com\vivekmurali2k\webstatus\docs\ER_WEBSTATUS.png)
+![ER_WEBSTATUS](ER_WEBSTATUS.png)
 
 
 
