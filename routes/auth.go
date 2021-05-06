@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 
 	"golang.org/x/crypto/bcrypt"
@@ -25,7 +24,10 @@ func (h *DBHandler) Register(w http.ResponseWriter, r *http.Request) {
 	// Reading the request's body
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		log.Fatal(err)
+		// log.Fatal(err)
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Could not read the body"))
+		return
 	}
 
 	defer r.Body.Close()
@@ -33,21 +35,44 @@ func (h *DBHandler) Register(w http.ResponseWriter, r *http.Request) {
 	// Getting data from json
 	err = json.Unmarshal([]byte(body), &user)
 	if err != nil {
-		log.Fatal(err)
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Could not parse json"))
+		return
 	}
 
 	// Hashing password using bcrypt
 	// Passwords to never be saved as plain text
 	hash, err := bcrypt.GenerateFromPassword([]byte(user.Password), 8)
 	if err != nil {
-		log.Fatal(err)
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Could not register"))
+		return
 	}
 
 	// Database query to insert user data
+	var EmailExistsError = "pq: duplicate key value violates unique constraint \"UNIQUE_EMAIL\""
+	var UsernameExistsError = "pq: duplicate key value violates unique constraint \"UNIQUE_USERNAME\""
+
 	insert := `insert into "USER_DATA"("USERNAME", "PASSWORD", "EMAIL_ID", "LEVEL") values ($1, $2, $3, $4)`
+
 	_, err = h.db.Exec(insert, user.Username, hash, user.Email_id, 1)
 	if err != nil {
-		log.Fatal(err)
+
+		if EmailExistsError == err.Error() {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("EMAIL ALREADY EXISTS"))
+			return
+		}
+
+		if UsernameExistsError == err.Error() {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("USERNAME ALREADY EXISTS"))
+			return
+		}
+
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
+		return
 	}
 
 	// Respone 200 and giving a respone of inserted into the database
@@ -71,7 +96,9 @@ func (h *DBHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		log.Fatal(err)
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Could not read the body"))
+		return
 	}
 
 	defer r.Body.Close()
@@ -79,7 +106,9 @@ func (h *DBHandler) Login(w http.ResponseWriter, r *http.Request) {
 	// Getting data from json
 	err = json.Unmarshal([]byte(body), &user)
 	if err != nil {
-		log.Fatal(err)
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Could not parse json"))
+		return
 	}
 
 	var pass string
@@ -87,27 +116,27 @@ func (h *DBHandler) Login(w http.ResponseWriter, r *http.Request) {
 	// Get only the password stored in the database
 	q := fmt.Sprintf(`SELECT "PASSWORD" FROM "USER_DATA" WHERE "USERNAME" = '%s'`, user.Username)
 
-	// execute the query
-	rows, err := h.db.Query(q)
+	var UserNotExist = "sql: no rows in result set"
+
+	// Getting hashed password of USER from DB using username
+	err = h.db.QueryRow(q).Scan(&pass)
 	if err != nil {
-		log.Fatal(err)
-	}
-	defer rows.Close()
-
-	// Initialize the value returned from the database to the pass string
-	for rows.Next() {
-
-		err = rows.Scan(&pass)
-		if err != nil {
-			log.Fatal(err)
+		if UserNotExist == err.Error() {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("USER DOES NOT EXIST"))
+			return
 		}
-
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
+		return
 	}
 
 	// Check if the password entered is the same as the password in the database
 	err = bcrypt.CompareHashAndPassword([]byte(pass), []byte(user.Password))
 	if err != nil {
-		log.Fatal(err)
+		w.WriteHeader(http.StatusUnauthorized)
+		w.Write([]byte("INCORRECT PASSWORD"))
+		return
 	}
 
 	w.Write([]byte(user.Password + " " + pass))
