@@ -37,6 +37,7 @@ func main() {
 	r.Get("/panic", internal.Panic)
 	r.Get("/db", iDB.DBTest)
 	r.Get("/query", h.TestQuery)
+	r.Post("/register", h.Register)
 
 	http.ListenAndServe(":3000", r)
 }
