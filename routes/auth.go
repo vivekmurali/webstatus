@@ -5,6 +5,8 @@ import (
 	"io"
 	"log"
 	"net/http"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 type UserJson struct {
@@ -28,9 +30,13 @@ func (h *DBHandler) Register(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(user.Password), 8)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	insert := `insert into "USER_DATA"("USERNAME", "PASSWORD", "EMAIL_ID", "LEVEL") values ($1, $2, $3, $4)`
-	_, err = h.db.Exec(insert, user.Username, user.Password, user.Email_id, 1)
+	_, err = h.db.Exec(insert, user.Username, hash, user.Email_id, 1)
 	if err != nil {
 		log.Fatal(err)
 	}
