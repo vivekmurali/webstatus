@@ -38,6 +38,7 @@ func main() {
 	r.Get("/db", iDB.DBTest)
 	r.Get("/query", h.TestQuery)
 	r.Post("/register", h.Register)
+	r.Post("/login", h.Login)
 
 	http.ListenAndServe(":3000", r)
 }

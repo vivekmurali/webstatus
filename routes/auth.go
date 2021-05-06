@@ -2,6 +2,7 @@ package routes
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -54,4 +55,60 @@ func (h *DBHandler) Register(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("INSERTED INTO THE DATABASE"))
 
+}
+
+type UserLogin struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+type UserLoginResponse struct {
+	Token string `json:"token"`
+}
+
+func (h *DBHandler) Login(w http.ResponseWriter, r *http.Request) {
+	var user UserLogin
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer r.Body.Close()
+
+	// Getting data from json
+	err = json.Unmarshal([]byte(body), &user)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var pass string
+
+	// Get only the password stored in the database
+	q := fmt.Sprintf(`SELECT "PASSWORD" FROM "USER_DATA" WHERE "USERNAME" = '%s'`, user.Username)
+
+	// execute the query
+	rows, err := h.db.Query(q)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
+
+	// Initialize the value returned from the database to the pass string
+	for rows.Next() {
+
+		err = rows.Scan(&pass)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+	}
+
+	// Check if the password entered is the same as the password in the database
+	err = bcrypt.CompareHashAndPassword([]byte(pass), []byte(user.Password))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	w.Write([]byte(user.Password + " " + pass))
 }
