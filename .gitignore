@@ -1,2 +1,4 @@
 *.exe
 .env
+node_modules
+

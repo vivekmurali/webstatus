@@ -60,7 +60,9 @@ When a new record is inserted, that record starts from the next cycle.
   * {user.ID}
   * ID
   * Creation time
+  * Request type
   * URL
+  * BODY
   * Interval
 * Logs
   * {web.ID}
@@ -69,10 +71,6 @@ When a new record is inserted, that record starts from the next cycle.
   * Logs
 * Deleted User
 * Deleted Web
-
-##### ER Diagram
-
-![ER_WEBSTATUS](ER_WEBSTATUS.png)
 
 
 
