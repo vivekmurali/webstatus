@@ -8,11 +8,13 @@ import (
 	"github.com/vivekmurali2k/webstatus/driver"
 	"github.com/vivekmurali2k/webstatus/routes"
 	internal "github.com/vivekmurali2k/webstatus/routes/internals"
+	"github.com/vivekmurali2k/webstatus/worker"
 )
 
 func main() {
 
 	r := chi.NewRouter()
+	worker.Run()
 
 	// Logs every request made
 	r.Use(middleware.Logger)
